@@ -7,23 +7,28 @@ width = 21.0
 height = 29.7
 margin = 2.2
 header = 3.5
-single_margin = 5
-table_margin = 2.2
-detail_margin = 2
+bd_single_margin = 5
+bd_table_margin = 2.2
+bd_detail_margin = 2
+bdp_single_margin = 1.5
+bdp_table_margin = 1.5
+bdp_detail_margin = 1.8
 #axes_column_width, axes_row_height
 bd_single_width = [10]
 bd_single_height = [10]
 bd_table_width = [10, 10]
+bdp_table_width = [10, 7]
+bdp_table_height = [10, 10, 10]
 bd_table_height = [10, 10, 10]
 bd_detail_width = [18]
 bd_detail_height = [30]
 ##
 DisplayNum = -1
 
-bd_table_ESl = [[[0.5,3,3],[1,3,3] ],\
-                [[2,4,4]  ,[5,4,4] ],\
-                [[10,3,3] ,[20,3,3]]]
-bd_detail_ESl = [[[1,7,7]]]
+bd_table_ESl = [[0.5,3,3], [1,3,3],\
+                [2,4,4]  , [5,4,4] ,\
+                [10,3,3] , [20,3,3]]
+bd_detail_ESl = [1,7,7]
 
 
 def Colorlist(i):

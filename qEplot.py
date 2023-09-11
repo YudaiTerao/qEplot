@@ -146,24 +146,29 @@ def BandSinglePlot(ax: a.Axes, values, kpoints, EneScale, Ecenter=0, detailgrid=
     Md.Kaxis(ax, 'x', kpoints)
     Md.Eaxis(ax, 'y', EneScale, Ecenter=Ecenter, detailgrid=detailgrid, MinorScale=MinorScale)
 
-def read_scf_out(file_scf_out):
-    TotalEne=FermiEne=Totalmag=Absolutemag=""
-    with open(file_scf_out, 'r') as f_scf_out:
-        for line in f_scf_out.readlines():
-            if "!" in line:
-                TotalEne = float(line.split()[4])
-            elif "Fermi" in line:
-                FermiEne = float(line.split()[4])
-            elif "total magnetization" in line:
-                Totalmag = float(line.split()[3])
-            elif "absolute magnetization" in line:
-                Absolutemag = float(line.split()[3])
-    return TotalEne, FermiEne, Totalmag, Absolutemag
+#######################
+# ===== DosPlot ===== #
+#######################
+
+def DosPlot(ax: a.Axes, values, EneScale, Eaxis='y', Ecenter=0, Elabel=True, detailgrid=False, MinorScale=1):
+    # values:[[e1,d1],[e2,d2]....[en,dn]]
+    #   nmax: 10 (colorlistを10までしか登録してない)
+    #   e: Energy, d: Dos  e1,d1などはすべてlist 
+    for i, value in enumerate(values):
+        ax.plot( value[1], value[0], c=Pm.Colorlist(i), lw=Pm.Dos_line_width )
+
+    if Eaxis == 'x' :
+        Md.Eaxis(ax, 'x', EneScale, Ecenter=Ecenter, detailgrid=detailgrid, MinorScale=MinorScale, Elabel=Elabel)
+        Md.Daxis(ax, 'y', EneScale, values, Ecenter=Ecenter)
+    elif Eaxis == 'y' :
+        Md.Eaxis(ax, 'y', EneScale, Ecenter=Ecenter, detailgrid=detailgrid, MinorScale=MinorScale, Elabel=Elabel)
+        Md.Daxis(ax, 'x', EneScale, values, Ecenter=Ecenter)
+
+######################
     
 if __name__ == '__main__':
     #----- 引数処理 -----#
     args = docopt(__doc__)
-    print(args)
     Method = args['<Method>']
     bdcolor = args['-c']
     optEneScale = [float(x) for x in args['-e'].split()]
@@ -206,12 +211,15 @@ if __name__ == '__main__':
         if args['-n'] == "":
             pp = PdfPages("{}/{}_{}.pdf".format(SAVE_PATH, Prefix, Method))
         else: pp = PdfPages(args['-n']+".pdf")
-        #--- page0 ---#
+
+        #---page0---#
         if len(optEneScale) == 3:
-            fig, ax = Md.MakeAxesTable(Pm.bd_single_width, Pm.bd_single_height, margin=Pm.single_margin)
+            fig, ax = Md.MakeAxesTable(Pm.bd_single_width, Pm.bd_single_height, \
+                                       margin=Pm.bd_single_margin)
             for i in range(len(ax)):
                 for j in range(len(ax[0])):
-                    BandSinglePlot(ax[i][j], bd.values, bd.kpoints, optEneScale, Ecenter=Ecenter, bdcolor=bdcolor) 
+                    BandSinglePlot(ax[i][j], bd.values, bd.kpoints, optEneScale, \
+                                   Ecenter=Ecenter, bdcolor=bdcolor) 
                     ax[i][j].tick_params('x', labelsize=18)         
                     ax[i][j].tick_params('y', labelsize=16)         
                     ax[i][j].set_ylabel(Pm.text_Elabel, fontsize=22, labelpad=Pm.E_label_pad)
@@ -219,38 +227,94 @@ if __name__ == '__main__':
             fig.clf()
 
         #---page1---#
-        fig, ax = Md.MakeAxesTable(Pm.bd_table_width, Pm.bd_table_height, margin=Pm.table_margin, Title=Title)
+        fig, ax = Md.MakeAxesTable(Pm.bd_table_width, Pm.bd_table_height, \
+                                   margin=Pm.bd_table_margin, Title=Title)
+        EneScale = np.array(bd_table_ESl).reshape(3,2,3).tolist()
         for i in range(len(ax)):
             for j in range(len(ax[0])):
-                BandSinglePlot(ax[i][j], bd.values, bd.kpoints, Pm.bd_table_ESl[i][j], Ecenter=Ecenter, bdcolor=bdcolor)
+                BandSinglePlot(ax[i][j], bd.values, bd.kpoints, \
+                               EneScale[i][j], Ecenter=Ecenter, bdcolor=bdcolor)
         plt.savefig(pp, format='pdf')
         fig.clf()
 
         #---page2---#
         # 詳細なgridの追加
-        fig, ax = Md.MakeAxesTable(Pm.bd_detail_width, Pm.bd_detail_height, margin=Pm.detail_margin)
+        fig, ax = Md.MakeAxesTable(Pm.bd_detail_width, Pm.bd_detail_height, \
+                                   margin=Pm.bd_detail_margin)
         for i in range(len(ax)):
             for j in range(len(ax[0])):
-                BandSinglePlot(ax[i][j], bd.values, bd.kpoints, Pm.bd_detail_ESl[i][j], Ecenter=Ecenter, bdcolor=bdcolor, detailgrid=True, MinorScale=0.2)
+                BandSinglePlot(ax[i][j], bd.values, bd.kpoints, \
+                               Pm.bd_detail_ESl, Ecenter=Ecenter, \
+                               bdcolor=bdcolor, detailgrid=True, MinorScale=0.2)
         plt.savefig(pp, format='pdf')
         fig.clf()
         
         pp.close()
         
+    ##--- qb-p:: bandとdosの比較を6つの範囲で出力 ---##
+    ##--- wb-p:: Wannierのbandとdosの比較を6つの範囲で出力 ---##
+    elif Method == 'qb-p' or Method == 'wb-p':
+        if Method == 'qb-p' :
+            bd = QeBand(ef, file_nscf_in, file_band_out, file_band_gnu)
+            Title = "{}\nQeBand-pdos".format(Prefix)
+        elif Method == 'wb-p' :
+            bd = WannierBand(ef, file_labelinfo, file_band_dat)
+            Title = "{}\nWannier-pdos".format(Prefix)
+        ds = Dos(ef, [[file_pdos_tot, 0, 2], [file_pdos_tot, 0, 1]])
 
+        if args['-n'] == "":
+            pp = PdfPages("{}/{}_{}.pdf".format(SAVE_PATH, Prefix, Method))
+        else: pp = PdfPages(args['-n']+".pdf")
 
+        #---page0---#
+        if len(optEneScale) == 3:
+            bdp_single_width = Pm.bd_single_width.copy()
+            bdp_single_width.append(Pm.bd_single_width[0]*6/10)
+            fig, ax = Md.MakeAxesTable(bdp_single_width, Pm.bd_single_height, \
+                                       margin=Pm.bdp_single_margin, \
+                                       width = 25, height=13)
+            for i in range(len(ax)):
+                BandSinglePlot(ax[i][0], bd.values, bd.kpoints, optEneScale, \
+                               Ecenter=Ecenter, bdcolor=bdcolor) 
+                DosPlot(ax[i][1], ds.values, optEneScale, Ecenter=Ecenter, Elabel=False)
+                ax[i][0].tick_params('x', labelsize=18)         
+                ax[i][0].tick_params('y', labelsize=16)         
+                ax[i][1].tick_params('x', labelsize=16)         
+                ax[i][1].tick_params('y', labelsize=16)         
+                ax[i][0].set_ylabel(Pm.text_Elabel, fontsize=22, \
+                                    labelpad=Pm.E_label_pad)
+            plt.savefig(pp, format='pdf')
+            fig.clf()
 
+        #---page1,2---#
+        EneScale = np.array(Pm.bd_table_ESl).reshape(2,3,3).tolist()
+        for page in range(2):
+            if page != 0 : Title = ""
+            fig, ax = Md.MakeAxesTable(Pm.bdp_table_width, Pm.bdp_table_height, \
+                                       margin=Pm.bdp_table_margin, Title=Title, header=Pm.header)
+            for i in range(len(ax)):
+                BandSinglePlot(ax[i][0], bd.values, bd.kpoints, \
+                              EneScale[page][i], Ecenter=Ecenter, bdcolor=bdcolor)
+                DosPlot(ax[i][1], ds.values, EneScale[page][i], \
+                        Ecenter=Ecenter, Elabel=False)
+            plt.savefig(pp, format='pdf')
+            fig.clf()
+        
+        #---page3---#
+        bdp_detail_width = Pm.bd_detail_width.copy()
+        bdp_detail_width.append(Pm.bd_detail_width[0]*6/10)
+        fig, ax = Md.MakeAxesTable(bdp_detail_width, Pm.bd_detail_height, \
+                                       margin=Pm.bdp_detail_margin, width = 25)
+        for i in range(len(ax)):
+            BandSinglePlot(ax[i][0], bd.values, bd.kpoints, Pm.bd_detail_ESl, \
+                    Ecenter=Ecenter, bdcolor=bdcolor, detailgrid=True, MinorScale=0.2)
+            DosPlot(ax[i][1], ds.values, Pm.bd_detail_ESl, Ecenter=Ecenter, \
+                    Elabel=False, detailgrid=True, MinorScale=0.2)
+        plt.savefig(pp, format='pdf')
+        fig.clf()
 
-
-
-
-
-
-
-
-
-
-
+        pp.close()
+        
 
 
 

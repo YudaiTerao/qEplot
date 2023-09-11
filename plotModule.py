@@ -9,7 +9,7 @@ import plotParameter as Pm
 def cminch(cm: float) -> float:
         return cm * 0.3937
 
-def Eaxis(ax: a.Axes, axis, EneScale, Ecenter=0, detailgrid=False, MinorScale=1):
+def Eaxis(ax: a.Axes, axis, EneScale, Ecenter=0, detailgrid=False, MinorScale=1, Elabel=True):
     Emax = (EneScale[0] * EneScale[1]) + Ecenter
     Emin = (EneScale[0] * EneScale[2] * -1) + Ecenter
     Eticks = np.arange(Emin, Emax+EneScale[0], EneScale[0])
@@ -22,7 +22,7 @@ def Eaxis(ax: a.Axes, axis, EneScale, Ecenter=0, detailgrid=False, MinorScale=1)
     eval("ax.set_{}lim".format(axis))(Emin, Emax)
     eval("ax.set_{}ticks".format(axis))(Eticks)
     eval("ax.set_{}ticklabels".format(axis))(Etickslabel)
-    eval("ax.set_{}label".format(axis))(Pm.text_Elabel, \
+    if Elabel: eval("ax.set_{}label".format(axis))(Pm.text_Elabel, \
                           fontdict=Pm.fontdict_Elabel, labelpad=Pm.E_label_pad)
 
     #FermiLine
@@ -55,7 +55,36 @@ def Kaxis(ax: a.Axes, axis, kpoints):
     eval("ax.set_{}ticklabels".format(axis))(Ktickslabel, minor=False, \
                                              fontdict=Pm.fontdict_Kticks)
 
-def MakeAxesTable(ax_column_width, ax_row_height, margin=Pm.margin, header="", height=Pm.height, width=Pm.width, Title=""):
+def Daxis(ax: a.Axes, axis, EneScale, values, Ecenter=0):
+    Emax = EneScale[0] * EneScale[1] + Ecenter
+    Emin = EneScale[0] * EneScale[2] * -1 + Ecenter
+
+    #---Dmax---#
+    visible_dvalue = []
+    for value in values:
+        for i in range(len(value[0])):
+            if Emin <= value[0][i] <= Emax : 
+                visible_dvalue.append(value[1][i])
+    Dmax = max(visible_dvalue)
+    if Dmax > 2:
+        Dmax = int(math.ceil(Dmax/3)*3)
+        Dscale = int(Dmax/3)
+    elif Dmax > 0.2 : 
+        Dmax = math.ceil(Dmax*10/3)*3/10 
+        Dscale = Dmax/3
+    else :
+        Dmax = math.ceil(Dmax*100/3)*3/100
+        Dscale = Dmax/3
+        
+    Dmin = 0
+    Dticks = np.arange(Dmin, Dmax+Dscale, Dscale)
+
+    ax.tick_params(axis=axis, pad=Pm.D_ticks_pad)
+    eval("ax.set_{}lim".format(axis))(Dmin, Dmax)
+    eval("ax.set_{}ticks".format(axis))(Dticks, minor=False)
+    eval("ax.set_{}ticklabels".format(axis))(Dticks, minor=False)
+
+def MakeAxesTable(ax_column_width, ax_row_height, height=Pm.height, width=Pm.width, margin=Pm.margin, lmargin=1, header="", Title=""):
 #ax_column_width, ax_row_heightは比で記述
 #ax_column_widthとax_row_heightはtableの列,行の幅,高さの配列
 #height, widthは全体の用紙の大きさで単位はcm
@@ -69,7 +98,7 @@ def MakeAxesTable(ax_column_width, ax_row_height, margin=Pm.margin, header="", h
     
     #sw, sh:: axes_sum_width,axes_sum_height, axesのwidth,heightの合計(cm単位)
     #wrate, hrate:: axesの長さ比の合計
-    sw = width - margin * (cn+1)
+    sw = width - margin * (cn+1) - lmargin 
     sh = height - margin * rn - header
     wrate = sum(ax_column_width)
     hrate = sum(ax_row_height)
@@ -91,7 +120,7 @@ def MakeAxesTable(ax_column_width, ax_row_height, margin=Pm.margin, header="", h
     ax = [[0] * cn  for i in [0] * rn]
     for i in range(rn):
         for j in range(cn):
-            x0 = (sum(ax_column_width[:j])*cmrate+margin*(j+1)+rlmargin)/width
+            x0 = (sum(ax_column_width[:j])*cmrate+margin*(j+1)+rlmargin+lmargin)/width
             y0 = (sum(ax_row_height[i+1:])*cmrate+margin*(rn-i)+tbmargin)/height
             w = ax_column_width[j]*cmrate/width
             h = ax_row_height[i]*cmrate/height
