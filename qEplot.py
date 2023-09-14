@@ -146,6 +146,24 @@ def BandSinglePlot(ax: a.Axes, values, kpoints, EneScale, Ecenter=0, detailgrid=
     Md.Kaxis(ax, 'x', kpoints)
     Md.Eaxis(ax, 'y', EneScale, Ecenter=Ecenter, detailgrid=detailgrid, MinorScale=MinorScale)
 
+def BandComparePlot(ax: a.Axes, values1, values2, kpoints, EneScale, Ecenter=0, detailgrid=False, MinorScale=1, DisplayNum=-1):
+    #-----values-----#
+    for i, value1 in enumerate(values1):
+        color=Pm.Colorlist(0)
+        ax.plot( value1[0], value1[1], c=color, lw=Pm.Band_line_width)
+        if i+1==DisplayNum : break
+    for i, value2 in enumerate(values2):
+        color=Pm.Colorlist(1)
+        ax.plot( value2[0], value2[1], c=color, lw=Pm.Band_line_width)
+        if i+1==DisplayNum : break
+
+    Md.Kaxis(ax, 'x', kpoints)
+    Md.Eaxis(ax, 'y', EneScale, Ecenter=Ecenter, detailgrid=detailgrid, MinorScale=MinorScale)
+
+def AdjustXvalue(x_source, x_source_max: float, x_ref_max: float):
+    x_new=[ float(xs*x_ref_max/x_source_max) for xs in x_source ]
+    return x_new
+
 #######################
 # ===== DosPlot ===== #
 #######################
@@ -199,6 +217,10 @@ if __name__ == '__main__':
     #####################
 
     totE, ef, totM, absM = read_scf_out(file_scf_out)
+        
+    if args['-n'] == "":
+        pp = PdfPages("{}/{}_{}.pdf".format(SAVE_PATH, Prefix, Method))
+    else: pp = PdfPages("{}/{}.pdf".format(SAVE_PATH, args['-n']))
 
     if Method == 'qb' or Method == 'wb':
         if Method =='qb':
@@ -208,10 +230,6 @@ if __name__ == '__main__':
             bd = QeBand(ef, file_labelinfo, file_band_dat)
             Title = "{}\nQeBand".format(Prefix)
  
-        if args['-n'] == "":
-            pp = PdfPages("{}/{}_{}.pdf".format(SAVE_PATH, Prefix, Method))
-        else: pp = PdfPages(args['-n']+".pdf")
-
         #---page0---#
         if len(optEneScale) == 3:
             fig, ax = Md.MakeAxesTable(Pm.bd_single_width, Pm.bd_single_height, \
@@ -229,7 +247,7 @@ if __name__ == '__main__':
         #---page1---#
         fig, ax = Md.MakeAxesTable(Pm.bd_table_width, Pm.bd_table_height, \
                                    margin=Pm.bd_table_margin, Title=Title)
-        EneScale = np.array(bd_table_ESl).reshape(3,2,3).tolist()
+        EneScale = np.array(Pm.bd_table_ESl).reshape(3,2,3).tolist()
         for i in range(len(ax)):
             for j in range(len(ax[0])):
                 BandSinglePlot(ax[i][j], bd.values, bd.kpoints, \
@@ -261,10 +279,6 @@ if __name__ == '__main__':
             bd = WannierBand(ef, file_labelinfo, file_band_dat)
             Title = "{}\nWannier-pdos".format(Prefix)
         ds = Dos(ef, [[file_pdos_tot, 0, 2], [file_pdos_tot, 0, 1]])
-
-        if args['-n'] == "":
-            pp = PdfPages("{}/{}_{}.pdf".format(SAVE_PATH, Prefix, Method))
-        else: pp = PdfPages(args['-n']+".pdf")
 
         #---page0---#
         if len(optEneScale) == 3:
@@ -314,9 +328,55 @@ if __name__ == '__main__':
         fig.clf()
 
         pp.close()
+    
+    ## qb-wb:: qebandとWannierbandの比較を6つの範囲で出力
+    elif Method == 'qb-wb' :
+        qb = QeBand(ef, file_nscf_in, file_band_out, file_band_gnu)
+        wb = WannierBand(ef, file_labelinfo, file_band_dat)
+        qb_values=[]
+        for value in qb.values:
+            adjust_qb_xvalue=AdjustXvalue(value[0], qb.kpoints[1][-1], wb.kpoints[1][-1])
+            qb_values.append([adjust_qb_xvalue, value[1]])
+        Title = "{}\nQe-WannierBand".format(Prefix)
+
+        #---page0---#
+        if len(optEneScale) == 3:
+            fig, ax = Md.MakeAxesTable(Pm.bd_single_width, Pm.bd_single_height, \
+                                       margin=Pm.bd_single_margin)
+            for i in range(len(ax)):
+                for j in range(len(ax[0])):
+                    BandComparePlot(ax[i][j], qb_values, wb.values, wb.kpoints, \
+                                  optEneScale, Ecenter=Ecenter) 
+                    ax[i][j].tick_params('x', labelsize=18)         
+                    ax[i][j].tick_params('y', labelsize=16)         
+                    ax[i][j].set_ylabel(Pm.text_Elabel, fontsize=22, labelpad=Pm.E_label_pad)
+            plt.savefig(pp, format='pdf')
+            fig.clf()
+
+        #---page1---#
+        fig, ax = Md.MakeAxesTable(Pm.bd_table_width, Pm.bd_table_height, \
+                                   margin=Pm.bd_table_margin, Title=Title)
+        EneScale = np.array(Pm.bd_table_ESl).reshape(3,2,3).tolist()
+        for i in range(len(ax)):
+            for j in range(len(ax[0])):
+                BandComparePlot(ax[i][j], qb_values, wb.values, wb.kpoints, \
+                               EneScale[i][j], Ecenter=Ecenter)
+        plt.savefig(pp, format='pdf')
+        fig.clf()
+
+        #---page2---#
+        # 詳細なgridの追加
+        fig, ax = Md.MakeAxesTable(Pm.bd_detail_width, Pm.bd_detail_height, \
+                                   margin=Pm.bd_detail_margin)
+        for i in range(len(ax)):
+            for j in range(len(ax[0])):
+                BandComparePlot(ax[i][j], qb_values, wb.values, wb.kpoints, \
+                               Pm.bd_detail_ESl, Ecenter=Ecenter, \
+                               detailgrid=True, MinorScale=0.2)
+        plt.savefig(pp, format='pdf')
+        fig.clf()
         
-
-
+        pp.close()
 
 
 
