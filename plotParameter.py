@@ -1,4 +1,6 @@
 
+import os
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
@@ -30,20 +32,31 @@ bd_table_ESl = [[0.5,3,3], [1,3,3],\
                 [10,3,3] , [20,3,3]]
 bd_detail_ESl = [1,7,7]
 
+def is_under_ssh_connection():
+    # The environment variable `SSH_CONNECTION` exists only in the SSH session.
+    # https://qiita.com/take_me/items/f91a3ffcee4c103a9a03
+    return 'SSH_CONNECTION' in os.environ.keys()
 
 def Colorlist(i):
     color_list=('#3288bd', '#d53e4f', '#fdae61', '#abdda4', '#f46d43', '#66c2a5', '#fee08b', '#5e4fa2', '#9e0142', '#e6f598')
     return color_list[i]
 
 def mpl_init():
-    rcParams["font.size"] = 14
-    rcParams["font.family"] = 'serif'
-    rcParams["font.serif"] = 'Times New Roman'
-    rcParams["font.sans-serif"] = 'Arial'
-    rcParams["mathtext.fontset"] = "cm"
-    plt.gca().xaxis.get_major_formatter().set_useOffset(False)
 
-    rcParams["axes.linewidth"] = 1.7    
+    if is_under_ssh_connection(): 
+        mpl.use('TkAgg')
+        #----- Default Font in remote -----#
+        rcParams["mathtext.fontset"] = "cm"   #texfont
+        rcParams['font.size']=14
+    else :
+        #----- Default Font in local -----#
+        rcParams["font.serif"] = "Times New Roman"
+        rcParams["font.sans-serif"] = 'Arial'
+        rcParams["font.family"] = "serif"
+        rcParams["mathtext.fontset"] = "cm"   #texfont
+        rcParams['font.size']=14
+
+    rcParams["axes.linewidth"] = 1.7
     for axis in ['x', 'y']:
         rcParams["{}tick.direction".format(axis)] = "in"      # 目盛の向き
         rcParams["{}tick.major.width".format(axis)] = 1.3     # 軸の線の線幅
@@ -52,7 +65,7 @@ def mpl_init():
         rcParams["{}tick.minor.width".format(axis)] = 0.6     # 副目盛の線幅
         rcParams["{}tick.minor.size".format(axis)] = 2.0      # 副目盛の長さ
         rcParams["{}tick.labelsize".format(axis)] = 12        # 目盛のfontsize
-    
+
     rcParams["xtick.top"] = True            # 上部に目盛iを描くかどうか
     rcParams["xtick.bottom"] = True         # 下部に目盛を描くかどうか
     rcParams["ytick.left"] = True           # 左部に目盛を描くかどうか

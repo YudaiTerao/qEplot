@@ -1,0 +1,9 @@
+#!/bin/bash
+
+function qp(){
+DirPATH=$(cd $(dirname $BASH_SOURCE); pwd)
+
+conda activate main
+python3 $DirPATH/qp.py $@
+}
+
