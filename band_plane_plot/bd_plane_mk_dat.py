@@ -1,33 +1,5 @@
-file_scf_out="../result/CrFeS2_S.scf.out"
 
-def read_scf_out(file_scf_out):
-    TotalEne=FermiEne=Totalmag=Absolutemag=""
-    with open(file_scf_out, 'r') as f_scf_out:
-        for line in f_scf_out.readlines():
-            if "!" in line:
-                TotalEne = float(line.split()[4])
-            elif "Fermi" in line:
-                FermiEne = float(line.split()[4])
-            elif "total magnetization" in line:
-                Totalmag = float(line.split()[3])
-            elif "absolute magnetization" in line:
-                Absolutemag = float(line.split()[3])
-    return TotalEne, FermiEne, Totalmag, Absolutemag
 
-totE, ef, totM, absM = read_scf_out(file_scf_out)
-
-def read_band_dat(file_band_dat, ef):
-    values = [[[],[]]]
-    lines = [ line.split()  for line in open(file_band_dat, "r").readlines() ]
-    j = k = 0
-    for i, line in enumerate(lines):
-        if ( len(line) < 1 ):
-            values[k][0] = [ float(lines[n][0]) for n in range(j,i) ]
-            values[k][1] = [ float(lines[n][1]) - ef for n in range(j,i) ]
-            values.extend([[[],[]]])
-            j = i+1
-            k += 1
-    return values
 
 n,m = 21,24
 #22と23が見たい
