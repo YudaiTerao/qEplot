@@ -55,17 +55,15 @@ class QeBand:
         return kpoints_coord
 
     def read_band_gnu(self, file_band_gnu):
-        values = [[[],[]]]
-        with open(file_band_gnu, 'r') as f_band_gnu:
+        with open(file_band_gnu, 'r') as fbg:
             lines = [ line.split() for line in f_band_gnu.readlines() ]
-        j = k = 0
+        j, values = 0, []
         for i, line in enumerate(lines):
             if ( len(line) < 2 ):
-                values[k][0] = [ float(lines[n][0]) for n in range(j,i) ]
-                values[k][1] = [ float(lines[n][1])-self.ef for n in range(j,i) ]
-                values.extend([[[],[]]])
+                value = np.array(lines[j:i], dtype=np.float64).T
+                value[1] = value[1] - self.ef
+                values.append(value)
                 j = i+1
-                k += 1
         return values
 
 class WannierBand:
@@ -85,16 +83,15 @@ class WannierBand:
         return [ kpoints_name, kpoints_coord ]
 
     def read_band_dat(self, file_band_dat):
-        values = [[[],[]]]
-        lines = [ line.split()  for line in open(file_band_dat, "r").readlines() ]
-        j = k = 0
+        with open(file_band_dat, "r") as f_band_dat:
+            lines = [ line.split() for line in f_band_dat.readlines() ]
+        j, values = 0, []
         for i, line in enumerate(lines):
             if ( len(line) < 1 ):
-                values[k][0] = [ float(lines[n][0]) for n in range(j,i) ]
-                values[k][1] = [ float(lines[n][1]) -self.ef for n in range(j,i) ]
-                values.extend([[[],[]]])
+                value = np.array(lines[j:i], dtype=np.float64).T
+                value[1] = value[1] - self.ef
+                values.append(value)
                 j = i+1
-                k += 1
         return values
 
 class Dos:

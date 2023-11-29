@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="qEplot",
-    version="0.2.0",
+    version="0.5.0",
     author="Yudai Terao",
     packages=find_packages(),
     install_requires=[
@@ -17,6 +17,7 @@ setup(
             'qb-pdf = qEplot.banddos_plot_pdf:bandplot',
             'qbp-pdf = qEplot.banddos_plot_pdf:banddosplot',
             'qbc-pdf = qEplot.banddos_plot_pdf:qbwbplot',
+            'pjband = qEplot.projband_plot:bandplot',
         ],
     },
 )
