@@ -2,12 +2,13 @@
 """
 Usage:
   qEplot.py scf (-d <dir>) [-s <SAVE_PATH>] [-m <MN>]
-  qEplot.py <Method> (-d <dir>...) [-p <Prefix>] [-s <SAVE_PATH>] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
+  qEplot.py <Method> <dir> [-d <dir2>...] [-p <Prefix>] [-s <SAVE_PATH>] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
 
 Options:
   scf              scf.outの情報を表で出力する
   <Method>         出力形式
-  -d <dir>         resultの入っているdir(複数選択可)
+  <dir>            resultの入っているdir
+  -d <dir>         resultの入っているdir, 追加選択分(複数選択可)
   -p <Prefix>      物質名, 出力pdfの名前とTitleに使う   [default: ]
   -s <SAVE_PATH>   保存先                       [default: ./]
   -c <bdcolor>     bandのcolor, defaultは5本ごとに色が変化  [default: rainbow]
@@ -125,8 +126,11 @@ class plotoption():
         self.optEneScale = [ float(x) for x in args['-e'].split('-') ]
         self.Ecenter = float(args['-o'])
 
+        dirlist = [ args['<dir>'] ]
+        if args['-d'] is not None:
+            dirlist = dirlist + args['-d']
         files = []
-        for dir in args['-d']: files = files + pt.filelist(dir)
+        for dir in dirlist: files = files + pt.filelist(dir)
         for file in files:
             if   ".scf.out" in file: self.file_scf_out=file
             elif ".nscf.in" in file:

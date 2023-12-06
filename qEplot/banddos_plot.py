@@ -2,11 +2,12 @@
 """
 Usage:
   banddos_plot.py scf (-d <dir>)
-  banddos_plot.py (-d <dir>...) [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
+  banddos_plot.py <dir> [-d <dir2>...] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
 
 Options:
   scf              scf.outの情報を表で出力する
-  -d <dir>         resultの入っているdir(複数選択可)
+  <dir>            resultの入っているdir
+  -d <dir2>        resultの入っているdir, 追加選択分(複数選択可)
   -c <bdcolor>     bandのcolor, defaultは5本ごとに色が変化  [default: rainbow]
   -e <EneScale>    任意のEneScale, 1-3-3のように指定, 指定すると1ページ目に新たにページを追加し、1つのグラフをplot    [default: 1-4-4]
   -o <Ecenter>     Eのグラフの中心, efから何eV離れたところに線を引くか  [default: 0.0]
@@ -55,7 +56,7 @@ class QeBand:
         return kpoints_coord
 
     def read_band_gnu(self, file_band_gnu):
-        with open(file_band_gnu, 'r') as fbg:
+        with open(file_band_gnu, 'r') as f_band_gnu:
             lines = [ line.split() for line in f_band_gnu.readlines() ]
         j, values = 0, []
         for i, line in enumerate(lines):
@@ -119,8 +120,12 @@ class plotoption():
         self.optEneScale = [ float(x) for x in args['-e'].split('-') ]
         self.Ecenter = float(args['-o'])
 
+        dirlist = [ args['<dir>'] ]
+        if args['-d'] is not None:
+            dirlist = dirlist + args['-d']
         files = []
-        for dir in args["-d"]: files = files + pt.filelist(dir)
+        self.w90 = False
+        for dir in dirlist: files = files + pt.filelist(dir)
         for file in files:
             if   ".scf.out" in file: self.file_scf_out=file
             elif ".nscf.in" in file:
@@ -129,7 +134,9 @@ class plotoption():
             elif ".band.out" in file: self.file_band_out=file
             elif ".band.gnu" in file: self.file_band_gnu=file
             elif "_band.dat" in file: self.file_band_dat=file
-            elif ".labelinfo.dat" in file: self.file_labelinfo=file
+            elif ".labelinfo.dat" in file: 
+                self.file_labelinfo=file
+                self.w90 = True
             elif ".pdos_tot" in file: self.file_pdos_tot=file
 
         self.totE, self.ef, self.totM, self.absM = pt.read_scf_out(self.file_scf_out)
@@ -139,7 +146,7 @@ class plotoption():
 
 def bandplot():
     op = plotoption()
-    if op.file_labelinfo is None :
+    if op.w90 == False :
         bd = QeBand(op.ef, op.file_nscf_in, op.file_band_out, op.file_band_gnu)
     else :
         bd = WannierBand(op.ef, op.file_labelinfo, op.file_band_dat)
@@ -156,7 +163,7 @@ def bandplot():
 ##--- wb-p:: Wannierのbandとdosの比較を出力 ---##
 def banddosplot():
     op = plotoption()
-    if op.file_labelinfo is None :
+    if op.w90 == False :
         bd = QeBand(op.ef, op.file_nscf_in, op.file_band_out, op.file_band_gnu)
     else :
         bd = WannierBand(op.ef, op.file_labelinfo, op.file_band_dat)
