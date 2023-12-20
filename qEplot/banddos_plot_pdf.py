@@ -1,14 +1,12 @@
 
 """
 Usage:
-  qEplot.py scf (-d <dir>) [-s <SAVE_PATH>] [-m <MN>]
-  qEplot.py <Method> <dir> [-d <dir2>...] [-p <Prefix>] [-s <SAVE_PATH>] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
+  banddos_plot_pdf.py <dir> [-d <dir2>...] [-p <Prefix>] [-s <SAVE_PATH>] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
 
 Options:
   scf              scf.outの情報を表で出力する
-  <Method>         出力形式
   <dir>            resultの入っているdir
-  -d <dir>         resultの入っているdir, 追加選択分(複数選択可)
+  -d <dir2>         resultの入っているdir, 追加選択分(複数選択可)
   -p <Prefix>      物質名, 出力pdfの名前とTitleに使う   [default: ]
   -s <SAVE_PATH>   保存先                       [default: ./]
   -c <bdcolor>     bandのcolor, defaultは5本ごとに色が変化  [default: rainbow]
@@ -119,7 +117,7 @@ class Dos:
 
 ######################
 class plotoption():
-    def __init__(self, Method):
+    def __init__(self):
         #----- 引数処理 -----#
         args = docopt(__doc__)
         self.bdcolor = args['-c']
@@ -139,14 +137,16 @@ class plotoption():
             elif ".band.out" in file: self.file_band_out=file
             elif ".band.gnu" in file: self.file_band_gnu=file
             elif "_band.dat" in file: self.file_band_dat=file
-            elif ".labelinfo.dat" in file: self.file_labelinfo=file
+            elif ".labelinfo.dat" in file:
+                self.file_labelinfo=file
+                self.w90 = True
             elif ".pdos_tot" in file: self.file_pdos_tot=file
 
         self.SAVE_PATH = args['-s']
         if self.SAVE_PATH[-1] == '/': self.SAVE_PATH = self.SAVE_PATH[:-1]
         if args['-p'] != "" : self.Prefix = args['-p']
         else :
-            for dir in args['-d']: self.Prefix = self.file_scf_out.replace(dir, "")
+            for dir in dirlist: self.Prefix = self.file_scf_out.replace(dir, "")
             self.Prefix=self.Prefix.replace(".scf.out", "").replace("/", "")
 
         self.totE, self.ef, self.totM, self.absM = pt.read_scf_out(self.file_scf_out)
@@ -156,7 +156,7 @@ class plotoption():
 
 def bandplot():
     op = plotoption()
-    if op.file_labelinfo is None :
+    if op.w90 == False :
         bd = QeBand(op.ef, op.file_nscf_in, op.file_band_out, op.file_band_gnu)
         pp = PdfPages("{}/{}_qb.pdf".format(op.SAVE_PATH, op.Prefix))
         Title = "{}\nQeBand".format(op.Prefix)
@@ -209,7 +209,7 @@ def banddosplot():
     ##--- qb-p:: bandとdosの比較を6つの範囲で出力 ---##
     ##--- wb-p:: Wannierのbandとdosの比較を6つの範囲で出力 ---##
     op = plotoption()
-    if op.file_labelinfo is None :
+    if op.w90 == False :
         bd = QeBand(op.ef, op.file_nscf_in, op.file_band_out, op.file_band_gnu)
         pp = PdfPages("{}/{}_qb-p.pdf".format(op.SAVE_PATH, op.Prefix))
         Title = "{}\nQeBand-pdos".format(op.Prefix)

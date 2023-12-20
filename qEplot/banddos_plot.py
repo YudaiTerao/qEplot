@@ -1,7 +1,6 @@
 
 """
 Usage:
-  banddos_plot.py scf (-d <dir>)
   banddos_plot.py <dir> [-d <dir2>...] [-c <bdcolor>] [-e <EneScale>] [-o <Ecenter>]
 
 Options:
@@ -134,7 +133,7 @@ class plotoption():
             elif ".band.out" in file: self.file_band_out=file
             elif ".band.gnu" in file: self.file_band_gnu=file
             elif "_band.dat" in file: self.file_band_dat=file
-            elif ".labelinfo.dat" in file: 
+            elif ".labelinfo.dat" in file:
                 self.file_labelinfo=file
                 self.w90 = True
             elif ".pdos_tot" in file: self.file_pdos_tot=file
